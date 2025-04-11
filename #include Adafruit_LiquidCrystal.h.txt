@@ -1,0 +1,82 @@
+ #include <Adafruit_LiquidCrystal.h>
+
+Adafruit_LiquidCrystal lcd(0);  // Initialize LCD
+
+const int buzzer = 7;    // Buzzer on pin 9
+const int button = 8;    // Button on pin 7
+bool alertActive = false;
+
+// Simulated time variables
+int hourSim = 7;  // Start simulation at 7 AM
+int minuteSim = 55;
+int secondsPerMinute = 5; // ⚠ Change this value to increase/decrease time simulation speed
+
+void setup() {
+    pinMode(buzzer, OUTPUT);
+    pinMode(button, INPUT_PULLUP);
+    Serial.begin(9600);
+
+    lcd.begin(16, 2);
+    lcd.setBacklight(1);
+    lcd.setCursor(0, 0);
+    lcd.print("Medicine Reminder");
+}
+
+void loop() {
+    // Display simulated time on LCD
+    lcd.setCursor(0, 1);
+    lcd.print("Time: ");
+    if (hourSim < 10) lcd.print("0");
+    lcd.print(hourSim);
+    lcd.print(":");
+    if (minuteSim < 10) lcd.print("0");
+    lcd.print(minuteSim);
+
+    // ⚠ Adjust medicine times here (currently every 5 sec for demo)
+    if ((hourSim == 8 || hourSim == 14 || hourSim == 20) && minuteSim == 0) {
+        activateReminder();
+    }
+
+    // Stop buzzer when button is pressed
+    if (digitalRead(button) == LOW && alertActive) {
+        stopReminder();
+    }
+
+    delay(secondsPerMinute * 1000); // ⚠ Adjust this for real-time (e.g., 60000 for 1 min)
+    minuteSim++;
+
+    if (minuteSim >= 60) {
+        minuteSim = 0;
+        hourSim++;
+        if (hourSim >= 24) {
+            hourSim = 0; // Reset at midnight
+        }
+    }
+}
+
+void activateReminder() {
+    Serial.println("Time to take medicine!");
+    lcd.setCursor(0, 1);
+    lcd.print("Take Medicine Now!");
+    alertActive = true;
+
+    // Buzzer beeps continuously until button is pressed
+    while (alertActive) {
+        digitalWrite(buzzer, HIGH);
+        delay(500);
+        digitalWrite(buzzer, LOW);
+        delay(500);
+
+        if (digitalRead(button) == LOW) {
+            stopReminder();
+        }
+    }
+}
+
+void stopReminder() {
+    Serial.println("Reminder Acknowledged!");
+    lcd.setCursor(0, 1);
+    lcd.print("Medicine Taken    ");
+    alertActive = false;
+    digitalWrite(buzzer, LOW);
+}
